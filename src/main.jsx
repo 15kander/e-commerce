@@ -29,7 +29,7 @@ function RatingFilter({ value, onChange }) {
       {[1, 2, 3, 4, 5].map((star) => (
         <span
           key={star}
-          onClick={() => onChange(star === value ? 0 : star)} // Сброс при повторном клике
+          onClick={() => onChange(star === value ? 0 : star)}
           style={{
             cursor: 'pointer',
             fontSize: '24px',
@@ -110,7 +110,7 @@ function App() {
           <option value="fragrances">Парфюмерия</option>
           <option value="skin-care">Уход за кожей</option>
           <option value="kitchen-accessories">Кухонные приборы</option>
-          <option value="groceries">Бакалея</option>
+          <option value="groceries">Продукты</option>
           <option value="home-decoration">Декор</option>
           <option value="beauty">Косметика</option>
 
