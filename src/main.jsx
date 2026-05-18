@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import React, { useState, useEffect, useMemo } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import axios from 'axios';
 
 function ProductCard({ product }) {
@@ -25,7 +26,7 @@ function ProductCard({ product }) {
 function RatingFilter({ value, onChange }) {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
-      <span style={{ marginRight: '8px', fontWeight:'bold' }}>Рейтинг от:</span>
+      <span style={{ marginRight: '8px', fontWeight: 'bold' }}>Рейтинг от:</span>
       {[1, 2, 3, 4, 5].map((star) => (
         <span
           key={star}
@@ -44,16 +45,22 @@ function RatingFilter({ value, onChange }) {
   );
 }
 
-
-
 function App() {
-  const [minRating, setMinRating] = useState(0)
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
-  const [maxPrice, setMaxPrice] = useState("");
 
+  const { register, watch, reset, setValue, control } = useForm({
+    defaultValues: {
+      search: "",
+      category: "all",
+      maxPrice: "",
+      minRating: 0
+    }
+  });
+
+  const watchAllFields = watch();
+  const { search, category, maxPrice, minRating } = watchAllFields;
+ 
   useEffect(() => {
     axios.get('https://dummyjson.com/products?limit=150')
       .then(res => {
@@ -72,10 +79,15 @@ function App() {
       const matchCategory = category === "all" || p.category === category;
       const matchPrice = !maxPrice || p.price <= Number(maxPrice);
       const productStars = Math.round(p.rating);
-      const matchRating = minRating === 0 || productStars === minRating
+      const matchRating = minRating === 0 || productStars === minRating;
+      
       return matchSearch && matchCategory && matchPrice && matchRating;
     });
   }, [search, category, maxPrice, minRating, products]);
+
+  const handleResetAll = () => {
+    reset();
+  };
 
   if (loading) return <h2 style={{ textAlign: 'center' }}>Загрузка товаров...</h2>;
 
@@ -83,28 +95,22 @@ function App() {
     <div style={styles.container}>
       <h2>Каталог товаров</h2>
 
-      <div style={styles.filters}>
+      <form style={styles.filters} onSubmit={(e) => e.preventDefault()}>
         <input
           type="text"
           placeholder="Поиск..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={styles.input}
-        />
+          {...register("search")}
+          style={styles.input} />
 
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          style={styles.input}
-        >
+        <select  {...register("category")} style={styles.input}>
           <option value="all">Все категории</option>
           <option value="smartphones">Смартфоны</option>
           <option value="mens-shirts">Мужская одежда</option>
           <option value="mens-shoes">Мужская обувь</option>
           <option value="mens-watches">Мужские наручные часы</option>
-          <option value="mobile-accessories">Мобильные акксесуары</option>
+          <option value="mobile-accessories">Мобильные аксессуары</option>
           <option value="motorcycle">Мотоциклы</option>
-          <option value="sports-accessories">Спортивные акксесуары</option>
+          <option value="sports-accessories">Спортивные аксессуары</option>
           <option value="furniture">Мебель</option>
           <option value="laptops">Ноутбуки</option>
           <option value="fragrances">Парфюмерия</option>
@@ -113,43 +119,39 @@ function App() {
           <option value="groceries">Продукты</option>
           <option value="home-decoration">Декор</option>
           <option value="beauty">Косметика</option>
-
         </select>
 
-        <input
-          type="number"
-          placeholder="Макс цена"
-          value={maxPrice}
-          onChange={(e) => setMaxPrice(e.target.value)}
-          style={styles.input}
-        />
+      <input
+        type="number"
+        placeholder="Макс цена"
+        {...register("maxPrice")}
+        style={styles.input} />
 
-        
+      <button
+        type="button"
+        onClick={handleResetAll}
+        style={styles.resetButton}
+      >
+        Сбросить все
+      </button>
+    </form> 
+    <div style={{ marginBottom: '30px' }}>
+        <Controller
+          name="minRating"
+          control={control}
+          render={({ field }) => (
+            <RatingFilter value={field.value} onChange={field.onChange} />
+          )} />
 
-        <button 
-              onClick={() => { setSearch(""); setCategory("all"); setMaxPrice(""); }}
-              style={styles.resetButton}
-            >
-              Сбросить все фильтры
-        </button>
-
-      
-      </div>
-
-      <div style={{marginBottom:'30px'}}>
-        <RatingFilter value={minRating} onChange={setMinRating} />
-  
         {minRating > 0 && (
-          <button 
-           onClick={() => setMinRating(0)} 
-           style={{ marginLeft: '10px', cursor: 'pointer', border: 'none', background: 'none', color: '#007bff' }}
-         >
-           сбросить
-         </button>
+          <button
+            onClick={() => setValue("minRating", 0)}
+            style={{ marginLeft: '10px', cursor: 'pointer', border: 'none', background: 'none', color: '#007bff' }}
+          >
+            сбросить
+          </button>
         )}
-      </div>
-
-      <div style={styles.grid}>
+      </div><div style={styles.grid}>
         {filteredProducts.length > 0 ? (
           filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
@@ -158,15 +160,12 @@ function App() {
           <div style={styles.emptyState}>
             <h3>По вашему запросу ничего не найдено</h3>
             <p>Попробуйте изменить параметры поиска или категорию</p>
-            
           </div>
         )}
       </div>
-        
-    </div>
+      </div>
   );
 }
-
 
 const styles = {
   container: {
@@ -177,9 +176,12 @@ const styles = {
   },
   filters: {
     marginBottom: "20px",
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "10px"
   },
   input: {
-    marginRight: "10px",
     padding: "10px",
     borderRadius: "8px",
     border: "1px solid #ccc",
@@ -243,14 +245,19 @@ const styles = {
   },
   resetButton:{
     cursor:'pointer',
-    width:'130px',
-    height:'45px',
+    padding: '0 15px',
+    height:'42px',
     fontSize:'15px',
     border:'1px solid #ccc',
-    borderRadius:'5px',
-    marginLeft:'20px',
+    borderRadius:'8px',
     fontWeight:'bold',
-    color:'#676767'
+    color:'#676767',
+    backgroundColor: '#fff'
+  },
+  emptyState: {
+    textAlign: 'center',
+    marginTop: '40px',
+    color: '#666'
   }
 };
 
